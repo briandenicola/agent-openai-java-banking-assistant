@@ -19,6 +19,7 @@ services:
       - spring_profiles_active=docker
       - ACCOUNTS_API_SERVER_URL=http://account:8080
       - PAYMENTS_API_SERVER_URL=http://payment:8080
+      - PORTFOLIO_API_SERVER_URL=http://portfolio:8080
       - TRANSACTIONS_API_SERVER_URL=http://transaction:8080
       - AZURE_CLIENT_ID=${servicePrincipal}
       - AZURE_CLIENT_SECRET=${servicePrincipalPassword}

@@ -3,6 +3,7 @@ package com.microsoft.openai.samples.assistant.agent;
 
 import com.azure.ai.openai.OpenAIAsyncClient;
 import com.microsoft.openai.samples.assistant.agent.cache.ToolExecutionCacheKey;
+import com.microsoft.openai.samples.assistant.agent.cache.InMemoryToolsExecutionCache;
 import com.microsoft.openai.samples.assistant.agent.cache.ToolExecutionCacheUtils;
 import com.microsoft.openai.samples.assistant.agent.cache.ToolsExecutionCache;
 import com.microsoft.openai.samples.assistant.plugin.LoggedUserPlugin;
@@ -64,7 +65,7 @@ public class AccountAgent {
         String accountsAPIYaml = null;
         try {
             accountsAPIYaml = EmbeddedResourceLoader.readFile("account.yaml",
-                    TransactionsReportingAgent.class,
+                    HistoryReportingAgent.class,
                     EmbeddedResourceLoader.ResourceLocation.CLASSPATH_ROOT);
         } catch (FileNotFoundException e) {
             throw new RuntimeException("Cannot find account-history.yaml file in the classpath", e);
@@ -85,7 +86,7 @@ public class AccountAgent {
                 .build();
 
         FunctionInvokedHook postExecutionHandler = event -> {
-            LOGGER.debug("Adding {} result to the cache:{}", event.getFunction().getName(),event.getResult().getResult());
+            LOGGER.info("Adding {} result to the cache:{}", event.getFunction().getName(),event.getResult().getResult());
             var tollsExecutionKey = new ToolExecutionCacheKey(loggedUserService.getLoggedUser().username(),null,event.getFunction().getName(),ToolExecutionCacheUtils.convert(event.getArguments()));
             this.toolsExecutionCache.put(tollsExecutionKey , event.getResult().getResult());
             return event;
@@ -134,7 +135,6 @@ public class AccountAgent {
          //get last message
          var message = messages.get(messages.size()-1);
 
-         LOGGER.info("======== Account Agent Response: {}",message.getContent());
          agentContext.setResult(message.getContent());
 
             }

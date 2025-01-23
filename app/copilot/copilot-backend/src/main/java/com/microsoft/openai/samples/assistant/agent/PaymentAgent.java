@@ -3,16 +3,27 @@ package com.microsoft.openai.samples.assistant.agent;
 
 import com.azure.ai.documentintelligence.DocumentIntelligenceClient;
 import com.azure.ai.openai.OpenAIAsyncClient;
+import com.azure.ai.openai.OpenAIClientBuilder;
+import com.azure.core.credential.AzureKeyCredential;
+import com.azure.core.http.policy.HttpLogDetailLevel;
+import com.azure.core.http.policy.HttpLogOptions;
 import com.microsoft.openai.samples.assistant.agent.cache.ToolExecutionCacheKey;
 import com.microsoft.openai.samples.assistant.agent.cache.ToolExecutionCacheUtils;
 import com.microsoft.openai.samples.assistant.agent.cache.ToolsExecutionCache;
+import com.microsoft.openai.samples.assistant.controller.ChatController;
 import com.microsoft.openai.samples.assistant.invoice.DocumentIntelligenceInvoiceScanHelper;
 import com.microsoft.openai.samples.assistant.plugin.InvoiceScanPlugin;
 import com.microsoft.openai.samples.assistant.plugin.LoggedUserPlugin;
+import com.microsoft.openai.samples.assistant.plugin.PaymentPlugin;
+import com.microsoft.openai.samples.assistant.plugin.TransactionHistoryPlugin;
 import com.microsoft.openai.samples.assistant.proxy.BlobStorageProxy;
 import com.microsoft.openai.samples.assistant.security.LoggedUserService;
 import com.microsoft.semantickernel.Kernel;
 import com.microsoft.semantickernel.aiservices.openai.chatcompletion.OpenAIChatCompletion;
+import com.microsoft.semantickernel.aiservices.openai.chatcompletion.OpenAIChatMessageContent;
+import com.microsoft.semantickernel.aiservices.openai.chatcompletion.OpenAIFunctionToolCall;
+import com.microsoft.semantickernel.contextvariables.CaseInsensitiveMap;
+import com.microsoft.semantickernel.contextvariables.ContextVariable;
 import com.microsoft.semantickernel.hooks.KernelHook;
 import com.microsoft.semantickernel.implementation.EmbeddedResourceLoader;
 import com.microsoft.semantickernel.orchestration.*;
@@ -26,8 +37,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
+import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class PaymentAgent {
     private static final Logger LOGGER = LoggerFactory.getLogger(PaymentAgent.class);
@@ -77,14 +91,14 @@ public class PaymentAgent {
                 .withAIService(ChatCompletionService.class, chat)
                 .build();
 
-        //var paymentPlugin = KernelPluginFactory.createFromObject(new PaymentMockPlugin(), "PaymentMockPlugin");
-        //var historyPlugin = KernelPluginFactory.createFromObject(new TransactionHistoryMockPlugin(), "TransactionHistoryMockPlugin");
+        //var paymentPlugin = KernelPluginFactory.createFromObject(new PaymentPlugin(), "PaymentPlugin");
+        //var historyPlugin = KernelPluginFactory.createFromObject(new TransactionHistoryPlugin(), "TransactionHistoryPlugin");
         var invoiceScanPlugin = KernelPluginFactory.createFromObject(new InvoiceScanPlugin(new DocumentIntelligenceInvoiceScanHelper(documentIntelligenceClient,blobStorageProxy)), "InvoiceScanPlugin");
 
         String transactionsAPIYaml = null;
         try {
             transactionsAPIYaml = EmbeddedResourceLoader.readFile("transaction-history.yaml",
-                    TransactionsReportingAgent.class,
+                    HistoryReportingAgent.class,
                     EmbeddedResourceLoader.ResourceLocation.CLASSPATH_ROOT);
         } catch (FileNotFoundException e) {
             throw new RuntimeException("Cannot find transaction-history.yaml file in the classpath",e);
@@ -93,7 +107,7 @@ public class PaymentAgent {
         //Used to retrieve transactions.
         KernelPlugin openAPIImporterTransactionPlugin = SemanticKernelOpenAPIImporter
                 .builder()
-                .withPluginName("TransactionHistoryMockPlugin")
+                .withPluginName("TransactionHistoryPlugin")
                 .withSchema(transactionsAPIYaml)
                 .withServer(transactionAPIUrl)
                 .build();
@@ -102,7 +116,7 @@ public class PaymentAgent {
         String accountsAPIYaml = null;
         try {
             accountsAPIYaml = EmbeddedResourceLoader.readFile("account.yaml",
-                    TransactionsReportingAgent.class,
+                    HistoryReportingAgent.class,
                     EmbeddedResourceLoader.ResourceLocation.CLASSPATH_ROOT);
         } catch (FileNotFoundException e) {
             throw new RuntimeException("Cannot find account-history.yaml file in the classpath",e);
@@ -118,7 +132,7 @@ public class PaymentAgent {
         String paymentsAPIYaml = null;
         try {
             paymentsAPIYaml = EmbeddedResourceLoader.readFile("payments.yaml",
-                    TransactionsReportingAgent.class,
+                    HistoryReportingAgent.class,
                     EmbeddedResourceLoader.ResourceLocation.CLASSPATH_ROOT);
         } catch (FileNotFoundException e) {
             throw new RuntimeException("Cannot find account-history.yaml file in the classpath",e);
@@ -147,7 +161,7 @@ public class PaymentAgent {
            )
                return event;
 
-           LOGGER.debug("Adding {} result to the cache:{}", event.getFunction().getName(),event.getResult().getResult());
+           LOGGER.info("Adding {} result to the cache:{}", event.getFunction().getName(),event.getResult().getResult());
            var toolsExecutionKey = new ToolExecutionCacheKey(loggedUserService.getLoggedUser().username(),null,event.getFunction().getName(), ToolExecutionCacheUtils.convert(event.getArguments()));
            this.toolsExecutionCache.put(toolsExecutionKey , event.getResult().getResult());
            return event;
@@ -201,7 +215,6 @@ public class PaymentAgent {
          //get last message
          var message = messages.get(messages.size()-1);
 
-         LOGGER.info("======== Payment Agent Response: {}",message.getContent());
          agentContext.setResult(message.getContent());
 
             }

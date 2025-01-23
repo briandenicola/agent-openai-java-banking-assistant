@@ -83,6 +83,7 @@ param paymentContainerAppName string = ''
 param copilotAppExists bool = false
 param webAppExists bool = false
 param accountAppExists bool = false
+param portfolioAppExists bool = false
 param paymentAppExists bool = false
 param transactionAppExists bool = false
 
@@ -187,9 +188,30 @@ module copilot 'app/copilot.bicep' = {
       }
       {
         name: 'ACCOUNTS_API_SERVER_URL'
-        value: account.outputs.SERVICE_API_URI}
-     
+        value: account.outputs.SERVICE_API_URI
+      }
+      {
+        name: 'PORTFOLIO_API_SERVER_URL'
+        value: portfolio.outputs.SERVICE_API_URI
+      }     
     ]
+  }
+}
+
+module portfolio 'app/portfolio.bicep' = {
+  name: 'portfolio'
+  scope: resourceGroup
+  params: {
+    name: !empty(accountContainerAppName) ? accountContainerAppName : '${abbrs.appContainerApps}portfolio-${resourceToken}'
+    location: location
+    tags: tags
+    identityName: '${abbrs.managedIdentityUserAssignedIdentities}portfolio-${resourceToken}'
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
+    containerAppsEnvironmentName: containerApps.outputs.environmentName
+    containerRegistryName: containerApps.outputs.registryName
+    corsAcaUrl: ''
+    exists: portfolioAppExists
+   
   }
 }
 

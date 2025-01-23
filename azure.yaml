@@ -16,6 +16,10 @@ services:
     project: app/business-api/payment
     language: java
     host: containerapp
+  portfolio:
+    project: app/business-api/portfolio
+    language: java
+    host: containerapp    
   transaction:
     project: app/business-api/transactions-history
     language: java

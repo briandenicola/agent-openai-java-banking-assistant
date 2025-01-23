@@ -6,6 +6,7 @@ public enum IntentType {
     RepeatTransaction,
     TransactionHistory,
     AccountInfo,
+    PortfolioInfo,
     None;
 
 

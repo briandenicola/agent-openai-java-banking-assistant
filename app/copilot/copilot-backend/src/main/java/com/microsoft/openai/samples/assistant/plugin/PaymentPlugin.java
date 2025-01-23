@@ -3,7 +3,10 @@ package com.microsoft.openai.samples.assistant.plugin;
 import com.microsoft.semantickernel.semanticfunctions.annotations.DefineKernelFunction;
 import com.microsoft.semantickernel.semanticfunctions.annotations.KernelFunctionParameter;
 
-public class PaymentMockPlugin {
+import java.util.ArrayList;
+import java.util.List;
+
+public class PaymentPlugin {
 
 
     @DefineKernelFunction(name = "payBill", description = "Gets the last payment transactions based on the payee, recipient name")

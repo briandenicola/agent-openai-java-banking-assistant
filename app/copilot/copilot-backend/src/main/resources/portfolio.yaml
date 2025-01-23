@@ -1,0 +1,64 @@
+openapi: 3.0.3
+info:
+  title: Portfolio API
+  version: 1.0.0
+paths:
+  /portfolios/{portfolioid}:
+    get:
+      summary: Get portfolio details 
+      description: Get portfolio details
+      operationId: getPortfolioDetails
+      parameters:
+        - name: portfolioid
+          description: id of specific portfolio.
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1000
+      responses:
+        '200':
+          description: Portfolio details
+          content:
+            application/json:
+              schema:
+                type: object
+                items:
+                  $ref: '#/components/schemas/Portfolio'
+components:
+  schemas:
+    Portfolio:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The unique identifier for the portfolio
+        userName:
+          type: string
+          description: The unique identifier for the user
+        balance:
+          type: string
+          description: The current balance of the portfolio
+        assets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Asset'
+          description: The list of assets in the portfolio
+    Asset:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The unique identifier for asset
+        type:
+          type: string
+          description: The type of the asset
+        name:
+          type: string
+          description: The name of the asset
+        quantity:
+          type: integer
+          description: The quantity of the asset
+        currentValue:
+          type: double
+          description: The current value of the asset
